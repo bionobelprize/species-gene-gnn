@@ -46,8 +46,8 @@ checkpoints/
 *.csv
 *.tsv
 *.txt
-data/*.csv
-data/*.tsv
+#data/*.csv
+#data/*.tsv
 !requirements.txt
 
 # Logs

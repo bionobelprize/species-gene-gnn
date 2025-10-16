@@ -97,7 +97,17 @@ predictions = model.predict(hetero_data, gene_a_ids, gene_b_ids)
 ### Run Example
 
 ```bash
+# Run the complete demo
 python examples/demo.py
+
+# Generate sample data
+python examples/generate_sample_data.py --num-samples 1000 --output data/sample_data.csv
+
+# Train a model
+python examples/train.py --data-path data/sample_data.csv --num-epochs 100 --verbose
+
+# Make predictions
+python examples/predict.py --model-path checkpoints/model.pt --data-path data/sample_data.csv
 ```
 
 ## 📊 Data Format
@@ -155,6 +165,42 @@ The model reports the following metrics:
 - **MAE (Mean Absolute Error)**: Average absolute difference
 - **Loss**: Training/validation loss
 
+## 🛠️ Command-Line Tools
+
+### Generate Sample Data
+
+```bash
+python examples/generate_sample_data.py \
+    --num-species 10 \
+    --num-genes 200 \
+    --num-samples 2000 \
+    --output data/my_data.csv \
+    --seed 42
+```
+
+### Train Model
+
+```bash
+python examples/train.py \
+    --data-path data/my_data.csv \
+    --embedding-dim 64 \
+    --hidden-dim 128 \
+    --num-layers 2 \
+    --num-epochs 100 \
+    --learning-rate 0.001 \
+    --model-save-path checkpoints/best_model.pt \
+    --verbose
+```
+
+### Make Predictions
+
+```bash
+python examples/predict.py \
+    --model-path checkpoints/best_model.pt \
+    --data-path data/new_data.csv \
+    --output-path predictions.csv
+```
+
 ## 🔬 Model Details
 
 ### Embedding Strategy
@@ -185,12 +231,18 @@ species-gene-gnn/
 │   ├── trainer.py           # Training pipeline
 │   └── utils.py             # Utility functions
 ├── examples/
-│   └── demo.py              # Example usage script
+│   ├── demo.py              # Complete demo script
+│   ├── generate_sample_data.py  # Sample data generator
+│   ├── train.py             # Training script
+│   └── predict.py           # Inference script
 ├── tests/
-│   └── (test files)         # Unit tests
+│   └── test_model.py        # Unit tests
 ├── data/
 │   └── (data files)         # Data directory
+├── checkpoints/
+│   └── (model files)        # Saved models
 ├── requirements.txt         # Python dependencies
+├── setup.py                 # Package setup
 └── README.md               # This file
 ```
 

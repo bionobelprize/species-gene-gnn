@@ -6,12 +6,14 @@ cross-species gene functional similarities.
 """
 
 from .data_loader import SpeciesGeneDataLoader
+from .data_preparation import DataPreparation
 from .graph_builder import HeteroGraphBuilder
 from .model import SpeciesGeneGNN
 from .trainer import Trainer
 
 __all__ = [
     'SpeciesGeneDataLoader',
+    'DataPreparation',
     'HeteroGraphBuilder',
     'SpeciesGeneGNN',
     'Trainer'

@@ -45,7 +45,50 @@ cd species-gene-gnn
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Optional: Install Diamond for data preparation
+# Ubuntu/Debian
+sudo apt-get install diamond-aligner
+
+# Or download from: https://github.com/bbuchfink/diamond
 ```
+
+### Data Preparation (Optional)
+
+If you have genome assembly data from NCBI Datasets, you can use the built-in data preparation module to generate the input CSV:
+
+```python
+from src.data_preparation import DataPreparation
+
+# Initialize data preparation
+prep = DataPreparation(
+    catalog_path='path/to/dataset_catalog.json',
+    output_dir='output'
+)
+
+# Run the complete pipeline
+df = prep.prepare_data(
+    max_target_seqs=5,
+    output_csv='data/gene_associations.csv'
+)
+```
+
+Or use the command-line interface:
+
+```bash
+python -m src.data_preparation \
+    --catalog path/to/dataset_catalog.json \
+    --output-dir output \
+    --output-csv data/gene_associations.csv \
+    --max-target-seqs 5
+```
+
+The data preparation pipeline will:
+1. Read `dataset_catalog.json` to extract protein FASTA files
+2. Create Diamond databases for each genome
+3. Perform all-vs-all BLASTP alignments (excluding self-alignments)
+4. Parse alignment results and extract best hits
+5. Generate a five-dimensional CSV file (species_a, gene_a, species_b, gene_b, similarity)
 
 ### Basic Usage
 
@@ -100,6 +143,9 @@ predictions = model.predict(hetero_data, gene_a_ids, gene_b_ids)
 # Run the complete demo
 python examples/demo.py
 
+# Prepare data from genome assemblies
+python examples/prepare_data.py
+
 # Generate sample data
 python examples/generate_sample_data.py --num-samples 1000 --output data/sample_data.csv
 
@@ -111,6 +157,41 @@ python examples/predict.py --model-path checkpoints/model.pt --data-path data/sa
 ```
 
 ## 📊 Data Format
+
+### dataset_catalog.json Format (for Data Preparation)
+
+The `dataset_catalog.json` file from NCBI Datasets has the following structure:
+
+```json
+{
+  "apiVersion": "V2",
+  "assemblies": [
+    {
+      "files": [
+        {
+          "filePath": "data_summary.tsv",
+          "fileType": "DATA_TABLE",
+          "uncompressedLengthBytes": "2142"
+        }
+      ]
+    },
+    {
+      "accession": "GCF_000157895.3",
+      "files": [
+        {
+          "filePath": "GCF_000157895.3/protein.faa",
+          "fileType": "PROTEIN_FASTA",
+          "uncompressedLengthBytes": "2320001"
+        }
+      ]
+    }
+  ]
+}
+```
+
+The data preparation module extracts:
+- `accession`: Genome assembly identifier (used as species name)
+- `filePath`: Path to protein FASTA file (PROTEIN_FASTA type)
 
 ### Input CSV Format
 
@@ -226,6 +307,7 @@ species-gene-gnn/
 ├── src/
 │   ├── __init__.py          # Package initialization
 │   ├── data_loader.py       # Data loading and preprocessing
+│   ├── data_preparation.py  # Genome data preparation pipeline
 │   ├── graph_builder.py     # Heterogeneous graph construction
 │   ├── model.py             # GNN model architecture
 │   ├── trainer.py           # Training pipeline
@@ -233,10 +315,12 @@ species-gene-gnn/
 ├── examples/
 │   ├── demo.py              # Complete demo script
 │   ├── generate_sample_data.py  # Sample data generator
+│   ├── prepare_data.py      # Data preparation example
 │   ├── train.py             # Training script
 │   └── predict.py           # Inference script
 ├── tests/
-│   └── test_model.py        # Unit tests
+│   ├── test_model.py        # Unit tests for model components
+│   └── test_data_preparation.py  # Unit tests for data preparation
 ├── data/
 │   └── (data files)         # Data directory
 ├── checkpoints/

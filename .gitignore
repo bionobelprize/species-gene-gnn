@@ -46,6 +46,9 @@ checkpoints/
 *.csv
 *.tsv
 *.txt
+*.json
+*.faa
+*.dmnd
 #data/*.csv
 #data/*.tsv
 !requirements.txt

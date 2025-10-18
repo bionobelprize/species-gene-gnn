@@ -300,6 +300,84 @@ The model minimizes Mean Squared Error (MSE) between predicted and actual simila
 Loss = MSE(predicted_similarity, actual_similarity)
 ```
 
+## 🧬 Embedding Accessor
+
+The `EmbeddingAccessor` class provides a comprehensive API for accessing and manipulating embeddings from trained models.
+
+### Features
+
+- **Retrieve Embeddings**: Get raw or transformed embeddings for specific species/genes
+- **Batch Operations**: Retrieve embeddings for multiple entities at once
+- **Similarity Computation**: Calculate cosine, euclidean, or dot product similarities
+- **Nearest Neighbors**: Find k-most similar entities
+- **Flexible Output**: Return embeddings as PyTorch tensors or NumPy arrays
+
+### Usage Example
+
+```python
+from src.embedding_accessor import EmbeddingAccessor
+
+# Create accessor (after training a model)
+accessor = EmbeddingAccessor(model, data_loader, device='cpu')
+
+# Get raw embedding for a species
+human_emb = accessor.get_raw_species_embedding('Human')
+
+# Get transformed embedding for a gene
+gene_emb = accessor.get_transformed_gene_embedding('BRCA1', hetero_data)
+
+# Batch retrieve embeddings
+species_list = ['Human', 'Mouse', 'Rat']
+batch_emb = accessor.get_batch_raw_embeddings('species', species_list)
+
+# Compute similarity between two embeddings
+emb1 = accessor.get_transformed_gene_embedding('BRCA1', hetero_data)
+emb2 = accessor.get_transformed_gene_embedding('TP53', hetero_data)
+similarity = accessor.compute_similarity(emb1, emb2, method='cosine')
+
+# Find nearest neighbors
+neighbors = accessor.find_nearest_neighbors(
+    'BRCA1',
+    entity_type='gene',
+    data=hetero_data,
+    k=5,
+    use_transformed=True
+)
+
+# Get all embeddings for a given type
+all_gene_emb = accessor.get_all_embeddings('gene', data=hetero_data, use_transformed=True)
+
+# Get embedding information
+info = accessor.get_embedding_info()
+print(f"Embedding dimensions: {info['raw_embedding_dim']} -> {info['transformed_embedding_dim']}")
+```
+
+### Available Methods
+
+**Single Entity Retrieval:**
+- `get_raw_species_embedding(species)` - Get initial species embedding
+- `get_raw_gene_embedding(gene)` - Get initial gene embedding
+- `get_transformed_species_embedding(species, data)` - Get post-GNN species embedding
+- `get_transformed_gene_embedding(gene, data)` - Get post-GNN gene embedding
+
+**Batch Retrieval:**
+- `get_batch_raw_embeddings(entity_type, entities)` - Get multiple raw embeddings
+- `get_batch_transformed_embeddings(entity_type, entities, data)` - Get multiple transformed embeddings
+- `get_all_embeddings(entity_type, data, use_transformed)` - Get all embeddings for a type
+
+**Analysis:**
+- `compute_similarity(emb1, emb2, method)` - Calculate similarity (cosine/euclidean/dot)
+- `find_nearest_neighbors(entity, entity_type, data, k)` - Find k nearest neighbors
+- `get_embedding_info()` - Get metadata about embeddings
+
+### Run Embedding Demo
+
+```bash
+python examples/embedding_demo.py
+```
+
+This demonstrates all embedding accessor functionality including retrieval, similarity computation, and nearest neighbor search.
+
 ## 📁 Project Structure
 
 ```
@@ -311,15 +389,18 @@ species-gene-gnn/
 │   ├── graph_builder.py     # Heterogeneous graph construction
 │   ├── model.py             # GNN model architecture
 │   ├── trainer.py           # Training pipeline
+│   ├── embedding_accessor.py # Embedding access and utilities
 │   └── utils.py             # Utility functions
 ├── examples/
 │   ├── demo.py              # Complete demo script
+│   ├── embedding_demo.py    # Embedding accessor demo
 │   ├── generate_sample_data.py  # Sample data generator
 │   ├── prepare_data.py      # Data preparation example
 │   ├── train.py             # Training script
 │   └── predict.py           # Inference script
 ├── tests/
 │   ├── test_model.py        # Unit tests for model components
+│   ├── test_embedding_accessor.py  # Unit tests for embedding accessor
 │   └── test_data_preparation.py  # Unit tests for data preparation
 ├── data/
 │   └── (data files)         # Data directory

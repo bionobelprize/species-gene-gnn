@@ -10,11 +10,13 @@ from .data_preparation import DataPreparation
 from .graph_builder import HeteroGraphBuilder
 from .model import SpeciesGeneGNN
 from .trainer import Trainer
+from .embedding_accessor import EmbeddingAccessor
 
 __all__ = [
     'SpeciesGeneDataLoader',
     'DataPreparation',
     'HeteroGraphBuilder',
     'SpeciesGeneGNN',
-    'Trainer'
+    'Trainer',
+    'EmbeddingAccessor'
 ]

@@ -236,6 +236,86 @@ class TestDataPreparation:
             'qseqid', 'sseqid', 'pident', 'length', 'mismatch', 'gapopen',
             'qstart', 'qend', 'sstart', 'send', 'evalue', 'bitscore'
         ]
+    
+    def test_self_alignment_enabled(self):
+        """Test that self-alignment is performed when enabled."""
+        catalog_path = self.create_sample_catalog()
+        output_dir = self.temp_path / "output"
+        
+        prep = DataPreparation(catalog_path, str(output_dir), include_self_alignment=True)
+        
+        assert prep.include_self_alignment == True
+    
+    def test_self_alignment_disabled(self):
+        """Test that self-alignment is disabled by default."""
+        catalog_path = self.create_sample_catalog()
+        output_dir = self.temp_path / "output"
+        
+        prep = DataPreparation(catalog_path, str(output_dir))
+        
+        assert prep.include_self_alignment == False
+    
+    def test_generate_input_csv_excludes_gene_self_comparison(self):
+        """Test that gene self-comparisons are excluded in self-alignments."""
+        catalog_path = self.create_sample_catalog()
+        output_dir = self.temp_path / "output"
+        
+        prep = DataPreparation(catalog_path, str(output_dir), include_self_alignment=True)
+        
+        # Create sample alignment file for self-alignment
+        alignment_dir = self.temp_path / "alignments"
+        alignment_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Create self-alignment file: GCF_000001 vs GCF_000001
+        alignment_data = [
+            "gene1\tgene1\t100.0\t100\t0\t0\t1\t100\t1\t100\t0.0\t250.0",  # Self-comparison - should be excluded
+            "gene1\tgene2\t95.5\t100\t2\t0\t1\t100\t1\t100\t1e-50\t200.5",
+            "gene2\tgene2\t100.0\t100\t0\t0\t1\t100\t1\t100\t0.0\t250.0",  # Self-comparison - should be excluded
+            "gene2\tgene1\t95.5\t100\t2\t0\t1\t100\t1\t100\t1e-50\t200.5"
+        ]
+        alignment_file = alignment_dir / "GCF_000001_vs_GCF_000001.tsv"
+        with open(alignment_file, 'w') as f:
+            f.write('\n'.join(alignment_data))
+        
+        df = prep.generate_input_csv([str(alignment_file)], normalize_scores=False)
+        
+        # Should have 2 records (excluding the 2 self-comparisons)
+        assert len(df) == 2
+        
+        # Verify no gene self-comparisons exist
+        for _, row in df.iterrows():
+            assert row['gene_a'] != row['gene_b'], "Gene self-comparison should be excluded"
+        
+        # Verify both species are the same (self-alignment)
+        assert all(df['species_a'] == 'GCF_000001')
+        assert all(df['species_b'] == 'GCF_000001')
+    
+    def test_generate_input_csv_cross_species_allows_same_gene_name(self):
+        """Test that cross-species alignments allow same gene names."""
+        catalog_path = self.create_sample_catalog()
+        output_dir = self.temp_path / "output"
+        
+        prep = DataPreparation(catalog_path, str(output_dir))
+        
+        # Create sample alignment file for cross-species alignment
+        alignment_dir = self.temp_path / "alignments"
+        alignment_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Create cross-species alignment file with same gene names
+        alignment_data = [
+            "gene1\tgene1\t95.5\t100\t2\t0\t1\t100\t1\t100\t1e-50\t200.5",  # Same name, different species - should be included
+        ]
+        alignment_file = alignment_dir / "GCF_000001_vs_GCF_000002.tsv"
+        with open(alignment_file, 'w') as f:
+            f.write('\n'.join(alignment_data))
+        
+        df = prep.generate_input_csv([str(alignment_file)], normalize_scores=False)
+        
+        # Should have 1 record (cross-species with same gene name is allowed)
+        assert len(df) == 1
+        assert df.iloc[0]['gene_a'] == 'gene1'
+        assert df.iloc[0]['gene_b'] == 'gene1'
+        assert df.iloc[0]['species_a'] != df.iloc[0]['species_b']
 
 
 if __name__ == '__main__':

@@ -46,6 +46,12 @@ def parse_args():
         default=0.15,
         help='Ratio of validation data (default: 0.15)'
     )
+    parser.add_argument(
+        '--genome-subset-ratio',
+        type=float,
+        default=1.0,
+        help='Ratio of genomes (species) to use for training (default: 1.0, range: 0.0-1.0)'
+    )
     
     # Model arguments
     parser.add_argument(
@@ -137,6 +143,33 @@ def main():
     data_loader = SpeciesGeneDataLoader()
     df = data_loader.load_data(data_path=args.data_path)
     print(f"Loaded {len(df)} associations")
+    
+    # Filter by genome subset if specified
+    if args.genome_subset_ratio < 1.0:
+        print(f"\nFiltering to {args.genome_subset_ratio * 100:.1f}% of genomes...")
+        
+        # Get all unique species
+        all_species = sorted(set(df['species_a'].unique()) | set(df['species_b'].unique()))
+        num_species = len(all_species)
+        
+        # Calculate number of species to keep
+        num_species_to_keep = max(1, int(num_species * args.genome_subset_ratio))
+        
+        # Randomly select species to keep (with fixed seed for reproducibility)
+        np.random.seed(42)
+        selected_species = set(np.random.choice(all_species, num_species_to_keep, replace=False))
+        
+        # Filter dataframe to only include selected species
+        df = df[
+            df['species_a'].isin(selected_species) & 
+            df['species_b'].isin(selected_species)
+        ]
+        
+        print(f"Selected {num_species_to_keep} out of {num_species} species")
+        print(f"Remaining associations: {len(df)}")
+        
+        if len(df) == 0:
+            raise ValueError("No associations remaining after genome filtering. Try a higher genome-subset-ratio.")
     
     # Build mappings
     data_loader.build_mappings(df)

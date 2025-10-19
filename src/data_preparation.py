@@ -23,13 +23,14 @@ class DataPreparation:
     and generates a five-dimensional CSV file for model input.
     """
     
-    def __init__(self, catalog_path: str, output_dir: str = "output"):
+    def __init__(self, catalog_path: str, output_dir: str = "output", include_self_alignment: bool = False):
         """
         Initialize DataPreparation.
         
         Args:
             catalog_path: Path to dataset_catalog.json
             output_dir: Directory for intermediate and output files
+            include_self_alignment: Whether to include within-species alignments (all-against-all)
         """
         self.catalog_path = catalog_path
         self.output_dir = Path(output_dir)
@@ -43,6 +44,7 @@ class DataPreparation:
         
         self.assemblies = []
         self.protein_files = {}
+        self.include_self_alignment = include_self_alignment
         
     def load_catalog(self) -> None:
         """
@@ -159,7 +161,7 @@ class DataPreparation:
     
     def perform_all_alignments(self, max_target_seqs: int = 5) -> List[str]:
         """
-        Perform all-vs-all alignments (excluding self-alignments).
+        Perform all-vs-all alignments.
         
         Args:
             max_target_seqs: Maximum number of target sequences per query
@@ -177,12 +179,12 @@ class DataPreparation:
             databases[accession] = db_path
         
         print(f"\nPerforming alignments...")
-        # Perform all-vs-all alignments (excluding self)
+        # Perform all-vs-all alignments
         for query_acc in self.assemblies:
             query_fasta = self.protein_files[query_acc]
             for target_acc in self.assemblies:
-                # Skip self-alignment
-                if query_acc == target_acc:
+                # Skip self-alignment unless explicitly enabled
+                if query_acc == target_acc and not self.include_self_alignment:
                     continue
                 
                 target_db = databases[target_acc]
@@ -280,6 +282,15 @@ class DataPreparation:
             
             if df.empty:
                 continue
+            
+            # Check if this is a self-alignment
+            is_self_alignment = (species_a == species_b)
+            
+            # Filter out gene self-comparisons in self-alignments BEFORE extracting best
+            if is_self_alignment:
+                df = df[df['qseqid'] != df['sseqid']]
+                if df.empty:
+                    continue
             
             # Extract best alignments
             df_best = self.extract_best_alignments(df)
@@ -403,10 +414,19 @@ def main():
         action='store_true',
         help='Do not normalize similarity scores'
     )
+    parser.add_argument(
+        '--include-self-alignment',
+        action='store_true',
+        help='Include within-species all-vs-all alignments (excluding gene self-comparisons)'
+    )
     
     args = parser.parse_args()
     
-    prep = DataPreparation(args.catalog, args.output_dir)
+    prep = DataPreparation(
+        args.catalog, 
+        args.output_dir, 
+        include_self_alignment=args.include_self_alignment
+    )
     prep.prepare_data(
         max_target_seqs=args.max_target_seqs,
         output_csv=args.output_csv,

@@ -9,10 +9,13 @@ import torch
 import torch.nn as nn
 from torch.optim import Adam
 from torch_geometric.data import HeteroData
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, TYPE_CHECKING
 import numpy as np
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 from .model import SpeciesGeneGNN
+
+if TYPE_CHECKING:
+    from .data_loader import SpeciesGeneDataLoader
 
 
 class Trainer:
@@ -27,7 +30,8 @@ class Trainer:
         model: SpeciesGeneGNN,
         learning_rate: float = 0.001,
         weight_decay: float = 1e-5,
-        device: str = 'cpu'
+        device: str = 'cpu',
+        data_loader: Optional['SpeciesGeneDataLoader'] = None
     ):
         """
         Initialize the trainer.
@@ -37,6 +41,7 @@ class Trainer:
             learning_rate: Learning rate for optimizer
             weight_decay: Weight decay for regularization
             device: Device to train on ('cpu' or 'cuda')
+            data_loader: Optional data loader with species/gene mappings
         """
         self.model = model.to(device)
         self.device = device
@@ -46,6 +51,7 @@ class Trainer:
             weight_decay=weight_decay
         )
         self.criterion = nn.MSELoss()
+        self.data_loader = data_loader
         
     def train_epoch(
         self,
@@ -192,14 +198,41 @@ class Trainer:
         return history
     
     def save_model(self, path: str):
-        """Save model checkpoint."""
-        torch.save({
+        """
+        Save model checkpoint with optional species/gene mappings.
+        
+        Args:
+            path: Path to save the checkpoint
+        """
+        checkpoint = {
             'model_state_dict': self.model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
-        }, path)
+        }
         
-    def load_model(self, path: str):
-        """Load model checkpoint."""
+        # Save species and gene mappings if data_loader is available
+        if self.data_loader is not None:
+            checkpoint['id_to_species'] = self.data_loader.id_to_species
+            checkpoint['id_to_gene'] = self.data_loader.id_to_gene
+        
+        torch.save(checkpoint, path)
+        
+    def load_model(self, path: str) -> Tuple[Optional[Dict[int, str]], Optional[Dict[int, str]]]:
+        """
+        Load model checkpoint and return species/gene mappings if available.
+        
+        Args:
+            path: Path to the checkpoint file
+            
+        Returns:
+            Tuple of (id_to_species, id_to_gene) dictionaries if available in checkpoint,
+            otherwise (None, None)
+        """
         checkpoint = torch.load(path, map_location=self.device)
         self.model.load_state_dict(checkpoint['model_state_dict'])
         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        
+        # Load species and gene mappings if available
+        id_to_species = checkpoint.get('id_to_species', None)
+        id_to_gene = checkpoint.get('id_to_gene', None)
+        
+        return id_to_species, id_to_gene

@@ -140,8 +140,13 @@ def main():
     )
     
     trainer = Trainer(model=model, device=device)
-    trainer.load_model(args.model_path)
+    id_to_species, id_to_gene = trainer.load_model(args.model_path)
     print(f"Model loaded from: {args.model_path}")
+    
+    if id_to_species is not None and id_to_gene is not None:
+        print(f"Loaded mappings: {len(id_to_species)} species, {len(id_to_gene)} genes")
+    else:
+        print("Warning: No species/gene mappings found in checkpoint")
     print()
     
     # Step 5: Make predictions

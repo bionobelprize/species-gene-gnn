@@ -60,7 +60,7 @@ def main():
     print()
     
     print("Gene ID Mapping (first 5):")
-    for gene_id, gene_name in sorted(list(data_loader.id_to_gene.items())[:5]):
+    for gene_id, gene_name in sorted(data_loader.id_to_gene.items())[:5]:
         print(f"  ID {gene_id} -> {gene_name}")
     print()
     

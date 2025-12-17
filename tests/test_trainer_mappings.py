@@ -192,9 +192,9 @@ class TestTrainerMappings:
         df = data_loader.load_data(data=self.sample_data)
         data_loader.build_mappings(df)
         
-        # Get the species and genes from the data
-        expected_species = sorted(set(df['species_a'].unique()) | set(df['species_b'].unique()))
-        expected_genes = sorted(set(df['gene_a'].unique()) | set(df['gene_b'].unique()))
+        # Use data_loader's existing mappings for expected values
+        expected_species = sorted(data_loader.species_to_id.keys())
+        expected_genes = sorted(data_loader.gene_to_id.keys())
         
         # Create and save model
         model = SpeciesGeneGNN(
@@ -258,12 +258,14 @@ class TestTrainerMappings:
         assert species_embedding_weight.shape[0] == len(checkpoint['id_to_species'])
         assert gene_embedding_weight.shape[0] == len(checkpoint['id_to_gene'])
         
-        # Verify each ID in mapping corresponds to a valid row
+        # Verify each ID in mapping corresponds to a valid row in the embedding matrix
         for species_id in checkpoint['id_to_species'].keys():
-            assert species_id < species_embedding_weight.shape[0]
+            assert species_id < species_embedding_weight.shape[0], \
+                f"Species ID {species_id} exceeds embedding matrix size {species_embedding_weight.shape[0]}"
         
         for gene_id in checkpoint['id_to_gene'].keys():
-            assert gene_id < gene_embedding_weight.shape[0]
+            assert gene_id < gene_embedding_weight.shape[0], \
+                f"Gene ID {gene_id} exceeds embedding matrix size {gene_embedding_weight.shape[0]}"
 
 
 if __name__ == '__main__':

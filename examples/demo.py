@@ -159,7 +159,8 @@ def main():
         model=model,
         learning_rate=0.001,
         weight_decay=1e-5,
-        device=device
+        device=device,
+        data_loader=data_loader
     )
     
     history = trainer.train(

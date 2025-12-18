@@ -257,7 +257,8 @@ def main():
         model=model,
         learning_rate=args.learning_rate,
         weight_decay=args.weight_decay,
-        device=device
+        device=device,
+        data_loader=data_loader
     )
     
     history = trainer.train(

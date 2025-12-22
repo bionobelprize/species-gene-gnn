@@ -257,8 +257,8 @@ class DataPreparation:
         Args:
             alignment_files: List of alignment output file paths
             output_path: Path to save output CSV (optional)
-            normalize_scores: Whether to normalize bitscore to [0, 1]
-            
+            normalize_scores: Whether to normalize pident to [0, 1] (by dividing by 100)
+        
         Returns:
             DataFrame with columns: species_a, gene_a, species_b, gene_b, similarity
         """
@@ -295,14 +295,14 @@ class DataPreparation:
             # Extract best alignments
             df_best = self.extract_best_alignments(df)
             
-            # Create records for CSV
+            # Create records for CSV, use pident as similarity
             for _, row in df_best.iterrows():
                 records.append({
                     'species_a': species_a,
                     'gene_a': row['qseqid'],
                     'species_b': species_b,
                     'gene_b': row['sseqid'],
-                    'similarity': row['bitscore']
+                    'similarity': row['pident']
                 })
         
         if not records:
@@ -311,17 +311,9 @@ class DataPreparation:
         
         result_df = pd.DataFrame(records)
         
-        # Normalize similarity scores
+        # Normalize similarity scores: pident is 0-100, so divide by 100 if requested
         if normalize_scores and len(result_df) > 0:
-            max_score = result_df['similarity'].max()
-            min_score = result_df['similarity'].min()
-            
-            if max_score > min_score:
-                result_df['similarity'] = (
-                    (result_df['similarity'] - min_score) / (max_score - min_score)
-                )
-            else:
-                result_df['similarity'] = 1.0
+            result_df['similarity'] = result_df['similarity'] / 100.0
         
         print(f"Generated {len(result_df)} gene-gene associations")
         print(f"  Species: {result_df['species_a'].nunique() + result_df['species_b'].nunique() - len(set(result_df['species_a']) & set(result_df['species_b']))}")
